@@ -293,7 +293,8 @@ int BTsocket::BTinsertMACtarget(wchar_t* name){
 
 BTsocket::~BTsocket(void)
 {
-	closesocket(sock);
+	if (sock != INVALID_SOCKET) closesocket(sock);
+	if (clientsock != INVALID_SOCKET) closesocket(clientsock);
 }
 
 int BTsocket::BTbind(void){
