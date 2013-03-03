@@ -1,4 +1,3 @@
-#define PKTCLOSE 0
 #define PKTDATA 1
 #include <ctype.h> 
 #include <stdio.h>

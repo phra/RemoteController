@@ -21,7 +21,7 @@ char* pacco::getData(void){
 
 header_t* pacco::getSerializedHeader(void){
 	header_t* hdr = (header_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(header_t));
-	hdr->size = datalen;
-	hdr->type = type;
+	hdr->size = htonl(datalen);
+	hdr->type = htonl(type);
 	return hdr;
 }

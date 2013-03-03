@@ -432,17 +432,19 @@ char* BTsocket::BTrecv(int size){
 
 //remember to call free()
 pacco* BTsocket::BTrecv(void){
-	char size2read[4];
+	char size2read[sizeof(header_t)];
 	int received = 0;
-	int tmp1 = 0, tmp2 = 0;
+	int tmp1 = 0, tmp2 = 0, tmp3 = 0;
 	char* buf;
 	header_t* hdr;
 	//read the header first.
+
+	printf("sizeof(header_t) = %d.\n",sizeof(header_t));
+
 	while (tmp1 < sizeof(header_t)) {
 		switch (tmp2 = recv(clientsock, size2read+tmp1, sizeof(header_t)-tmp1, 0)) {
 		case 0: // socket connection has been closed gracefully
 			wprintf(L"recv returns 0.\n");
-			return new pacco(PKTCLOSE,NULL,0);
 		case SOCKET_ERROR: //or error
 			wprintf(L"=CRITICAL= | recv() call failed. WSAGetLastError=[%d]\n", WSAGetLastError());
 			return NULL;
@@ -452,7 +454,9 @@ pacco* BTsocket::BTrecv(void){
 		}
 	}
 	hdr = (header_t*) size2read;
-	//tmp3 = *(UINT32*)size2read;
+	hdr->type = ntohl(hdr->type);
+	hdr->size = ntohl(hdr->size);
+	printf("hdr->size = %d\n",hdr->size);
 	buf = (char *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, hdr->size);
 	assert(buf);
 	tmp1 = tmp2 = 0;

@@ -2,7 +2,7 @@ package com.luugiathuy.apps.remotebluetooth;
 
 
 import java.io.UnsupportedEncodingException;
-
+import java.nio.ByteOrder;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,7 +29,7 @@ public class RemoteBluetooth extends Activity {
 	// Layout view
 	private TextView mTitle;
 	private Button testbutton, button2, button3, button4, button5;
-	
+	private EditText edittext1;	
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -65,11 +66,14 @@ public class RemoteBluetooth extends Activity {
         mTitle = (TextView) findViewById(R.id.title_left_text);
         mTitle.setText(R.string.app_name);
         mTitle = (TextView) findViewById(R.id.title_right_text);
+        edittext1 = (EditText) findViewById(R.id.editText1);
         testbutton = (Button) findViewById(R.id.button1);
         button2 = (Button) findViewById(R.id.button2);
         button3 = (Button) findViewById(R.id.button3);
         button4 = (Button) findViewById(R.id.button4);
         button5 = (Button) findViewById(R.id.button5);
+        /*if (ByteOrder.nativeOrder() == ByteOrder.LITTLE_ENDIAN) edittext1.setText("ByteOrder: LE");
+        else edittext1.setText("ByteOrder: BE");*/
         
         
         testbutton.setOnClickListener(new OnClickListener() {
@@ -82,8 +86,6 @@ public class RemoteBluetooth extends Activity {
 					//mCommandService.write(("abc\n").getBytes("US-ASCII"));
 					mCommandService.write(message.getBytes("US-ASCII"));
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 					AlertBox("Error encoding", "fuck");
 				}
             }
@@ -93,14 +95,10 @@ public class RemoteBluetooth extends Activity {
         button2.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 // Send a message using content of the edit text widget
-                TextView view = (TextView) findViewById(R.id.editText2);
-                String message = view.getText().toString();
                 //mCommandService.write((message + '\n').getBytes("cp1252"));
 				try {
-					mCommandService.write(("W").getBytes("US-ASCII"));
+					mCommandService.write(("W").getBytes("US-ASCII"),1);
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 					AlertBox("Error encoding", "fuck");
 				}
             }
@@ -109,14 +107,10 @@ public class RemoteBluetooth extends Activity {
         button3.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 // Send a message using content of the edit text widget
-                TextView view = (TextView) findViewById(R.id.editText2);
-                String message = view.getText().toString();
                 //mCommandService.write((message + '\n').getBytes("cp1252"));
 				try {
 					mCommandService.write(("A").getBytes("US-ASCII"));
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 					AlertBox("Error encoding", "fuck");
 				}
             }
@@ -125,14 +119,10 @@ public class RemoteBluetooth extends Activity {
         button4.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 // Send a message using content of the edit text widget
-                TextView view = (TextView) findViewById(R.id.editText2);
-                String message = view.getText().toString();
                 //mCommandService.write((message + '\n').getBytes("cp1252"));
 				try {
 					mCommandService.write(("S").getBytes("US-ASCII"));
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 					AlertBox("Error encoding", "fuck");
 				}
             }
@@ -143,14 +133,10 @@ public class RemoteBluetooth extends Activity {
         button5.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 // Send a message using content of the edit text widget
-                TextView view = (TextView) findViewById(R.id.editText2);
-                String message = view.getText().toString();
                 //mCommandService.write((message + '\n').getBytes("cp1252"));
 				try {
 					mCommandService.write(("D").getBytes("US-ASCII"));
 				} catch (UnsupportedEncodingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 					AlertBox("Error encoding", "fuck");
 				}
             }
@@ -224,38 +210,44 @@ public class RemoteBluetooth extends Activity {
             startActivity(discoverableIntent);
         }
     }
+
+	private void _handleMessage(Message msg) {
+        switch (msg.what) {
+        case MESSAGE_STATE_CHANGE:
+            switch (msg.arg1) {
+            case BluetoothCommandService.STATE_CONNECTED:
+                mTitle.setText(R.string.title_connected_to);
+                mTitle.append(mConnectedDeviceName);
+                break;
+            case BluetoothCommandService.STATE_CONNECTING:
+                mTitle.setText(R.string.title_connecting);
+                break;
+            case BluetoothCommandService.STATE_LISTEN:
+            case BluetoothCommandService.STATE_NONE:
+                mTitle.setText(R.string.title_not_connected);
+                break;
+            }
+            break;
+        case MESSAGE_DEVICE_NAME:
+            // save the connected device's name
+            mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+            Toast.makeText(getApplicationContext(), "Connected to "
+                           + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+            break;
+        case MESSAGE_TOAST:
+            Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
+                           Toast.LENGTH_SHORT).show();
+            break;
+        }
+    }
+	
+	
 	
 	// The Handler that gets information back from the BluetoothChatService
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            switch (msg.what) {
-            case MESSAGE_STATE_CHANGE:
-                switch (msg.arg1) {
-                case BluetoothCommandService.STATE_CONNECTED:
-                    mTitle.setText(R.string.title_connected_to);
-                    mTitle.append(mConnectedDeviceName);
-                    break;
-                case BluetoothCommandService.STATE_CONNECTING:
-                    mTitle.setText(R.string.title_connecting);
-                    break;
-                case BluetoothCommandService.STATE_LISTEN:
-                case BluetoothCommandService.STATE_NONE:
-                    mTitle.setText(R.string.title_not_connected);
-                    break;
-                }
-                break;
-            case MESSAGE_DEVICE_NAME:
-                // save the connected device's name
-                mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
-                Toast.makeText(getApplicationContext(), "Connected to "
-                               + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                break;
-            case MESSAGE_TOAST:
-                Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
-                               Toast.LENGTH_SHORT).show();
-                break;
-            }
+            _handleMessage(msg);
         }
     };
 	

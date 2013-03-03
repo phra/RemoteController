@@ -31,7 +31,7 @@
 #include <iostream>
 #include <io.h>
 #include <fcntl.h>
-
+#include <windows.h>
 #include "BTsocket.h"
 #include "pacco.h"
 
@@ -39,8 +39,6 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 #define _In_reads_(size)                _Deref_pre_readonly_ _Pre_count_(size)
-
-
 
 
 // {B62C4E8D-62CC-404b-BBBF-BF3E3BBB1374}
@@ -508,6 +506,11 @@ return;
 //
 
 #define CXN_INSTANCE_STRING L"Sample Bluetooth Server"
+/*#include <windows.h>
+#using <system.dll>
+using namespace System;
+#using System::Runtime::InteropServices;
+[DllImport("USER32.DLL")]*/
 
 ULONG RunServerMode(_In_ int iMaxCxnCycles)
 {
@@ -529,29 +532,29 @@ ULONG RunServerMode(_In_ int iMaxCxnCycles)
     LPCSADDR_INFO   lpCSAddrInfo = NULL;
     HRESULT         res;
 	char* buffer;
-
+	int i = 10;
 
 	BTsocket* btsock = new BTsocket();
 	btsock->BTbind();
 	btsock->BTregister();
 	btsock->BTlisten();
 	btsock->BTaccept();
-	buffer = btsock->BTrecv(10);
-	printf("*INFO* | Received following data string from remote device:\n%s\n", buffer);
+	//buffer = btsock->BTrecv(10);
+	pacco* pkt = btsock->BTrecv();
+	printf("*INFO* | Received following data string from remote device:\n%c\n", *pkt->getData()); //overflow, no \0!!
+	//GenerateKey(toupper(*(pkt->getData())),FALSE);
+	
+	//GenerateKey(toupper(*p),TRUE);
+	//GenerateKey('A',TRUE);
+	//GenerateKey('0',TRUE);
+	//GenerateKey (VK_CAPITAL, TRUE);
+	//GenerateKey('B',FALSE);
+	//GenerateKey (VK_CAPITAL, TRUE);
+	//GenerateKey('0',FALSE);
+	//GenerateKey(0x0D, FALSE); //ENTERKEY!
+	//Sleep(250);
 
-	/*
-	for (; *p != '\0'; p++){
-		//printf("%c\n",p[i]);
-		//if (p[i] == '\0') break;
-		GenerateKey(toupper(*p),TRUE);
-		//GenerateKey('A',TRUE);
-		//GenerateKey('0',TRUE);
-		//GenerateKey (VK_CAPITAL, TRUE);
-		//GenerateKey('B',FALSE);
-		//GenerateKey (VK_CAPITAL, TRUE);
-		//GenerateKey('0',FALSE);
-	}*/
-	HeapFree(GetProcessHeap(), 0, buffer);
+	//HeapFree(GetProcessHeap(), 0, pkt);
 	btsock->BTclose();
 	delete btsock;
 	btsock = NULL;

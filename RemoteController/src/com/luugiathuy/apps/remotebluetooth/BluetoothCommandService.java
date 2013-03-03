@@ -1,5 +1,7 @@
 package com.luugiathuy.apps.remotebluetooth;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -153,7 +155,29 @@ public class BluetoothCommandService {
         
         setState(STATE_NONE);
     }
+
     
+    /**
+     * Write to the connected OutStream converting the buffer to a packet.
+     * @param buffer  The bytes to write
+     * @param type type of the packet
+     */
+    public void write(byte[] buffer, int type) {
+            // Create temporary object
+            ConnectedThread r;
+            // Synchronize a copy of the ConnectedThread
+            synchronized (this) {
+                if (mState != STATE_CONNECTED) return;
+                r = mConnectedThread;
+            }
+            // Perform the write unsynchronized
+            r.writeInt(buffer.length);
+            r.writeInt(type);
+            r.write(buffer);
+    }
+        
+    
+
     /**
      * Write to the ConnectedThread in an unsynchronized manner
      * @param out The bytes to write
@@ -351,6 +375,21 @@ public class BluetoothCommandService {
                 Log.e(TAG, "Exception during write", e);
             }
         }
+        
+
+        public void writeInt(int i) {
+        	try {
+        		DataOutputStream din = new DataOutputStream(mmOutStream);
+                din.writeInt(i);
+
+                // Share the sent message back to the UI Activity
+//                mHandler.obtainMessage(BluetoothChat.MESSAGE_WRITE, -1, -1, buffer)
+//                        .sendToTarget();
+            } catch (IOException e) {
+                Log.e(TAG, "Exception during write", e);
+            }
+        }
+        
         
         public void write(int out) {
         	try {
