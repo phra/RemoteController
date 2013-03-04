@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.luugiathuy.apps.remotebluetooth;
+package com.phtest.remotecontroller;
 
 import java.util.Set;
 
@@ -36,6 +36,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
+import com.phtest.remotecontroller.R;
 
 /**
  * This Activity appears as a dialog. It lists any paired devices and

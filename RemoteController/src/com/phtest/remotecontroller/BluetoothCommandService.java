@@ -1,4 +1,4 @@
-package com.luugiathuy.apps.remotebluetooth;
+package com.phtest.remotecontroller;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import com.phtest.remotecontroller.Pacco;
 
 public class BluetoothCommandService {
 	// Debugging
@@ -67,7 +68,7 @@ public class BluetoothCommandService {
         mState = state;
 
         // Give the new state to the Handler so the UI Activity can update
-        mHandler.obtainMessage(RemoteBluetooth.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        mHandler.obtainMessage(RemoteController.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
 
     /**
@@ -131,9 +132,9 @@ public class BluetoothCommandService {
         mConnectedThread.start();
 
         // Send the name of the connected device back to the UI Activity
-        Message msg = mHandler.obtainMessage(RemoteBluetooth.MESSAGE_DEVICE_NAME);
+        Message msg = mHandler.obtainMessage(RemoteController.MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
-        bundle.putString(RemoteBluetooth.DEVICE_NAME, device.getName());
+        bundle.putString(RemoteController.DEVICE_NAME, device.getName());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 
@@ -170,10 +171,8 @@ public class BluetoothCommandService {
                 if (mState != STATE_CONNECTED) return;
                 r = mConnectedThread;
             }
-            // Perform the write unsynchronized
-            r.writeInt(buffer.length);
-            r.writeInt(type);
-            r.write(buffer);
+            r.writeRawPkt(buffer);
+            
     }
         
     
@@ -214,9 +213,9 @@ public class BluetoothCommandService {
         setState(STATE_LISTEN);
 
         // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(RemoteBluetooth.MESSAGE_TOAST);
+        Message msg = mHandler.obtainMessage(RemoteController.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(RemoteBluetooth.TOAST, "Unable to connect device");
+        bundle.putString(RemoteController.TOAST, "Unable to connect device");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
     }
@@ -228,9 +227,9 @@ public class BluetoothCommandService {
 //        mConnectionLostCount++;
 //        if (mConnectionLostCount < 3) {
 //        	// Send a reconnect message back to the Activity
-//	        Message msg = mHandler.obtainMessage(RemoteBluetooth.MESSAGE_TOAST);
+//	        Message msg = mHandler.obtainMessage(RemoteController.MESSAGE_TOAST);
 //	        Bundle bundle = new Bundle();
-//	        bundle.putString(RemoteBluetooth.TOAST, "Device connection was lost. Reconnecting...");
+//	        bundle.putString(RemoteController.TOAST, "Device connection was lost. Reconnecting...");
 //	        msg.setData(bundle);
 //	        mHandler.sendMessage(msg);
 //	        
@@ -238,9 +237,9 @@ public class BluetoothCommandService {
 //        } else {
         	setState(STATE_LISTEN);
 	        // Send a failure message back to the Activity
-	        Message msg = mHandler.obtainMessage(RemoteBluetooth.MESSAGE_TOAST);
+	        Message msg = mHandler.obtainMessage(RemoteController.MESSAGE_TOAST);
 	        Bundle bundle = new Bundle();
-	        bundle.putString(RemoteBluetooth.TOAST, "Device connection was lost");
+	        bundle.putString(RemoteController.TOAST, "Device connection was lost");
 	        msg.setData(bundle);
 	        mHandler.sendMessage(msg);
 //        }
@@ -320,6 +319,7 @@ public class BluetoothCommandService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private final BTsocket btsock;
 
         public ConnectedThread(BluetoothSocket socket) {
             Log.d(TAG, "create ConnectedThread");
@@ -333,11 +333,14 @@ public class BluetoothCommandService {
                 tmpOut = socket.getOutputStream();
             } catch (IOException e) {
                 Log.e(TAG, "temp sockets not created", e);
+                
             }
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
+            btsock = new BTsocket(mmInStream,mmOutStream);
         }
+        
 
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
@@ -345,59 +348,55 @@ public class BluetoothCommandService {
             
             // Keep listening to the InputStream while connected
             while (true) {
-                try {
                 	// Read from the InputStream
-                    int bytes = mmInStream.read(buffer);
-
+                    //int bytes = mmInStream.read(buffer);
+                    Pacco pkt = btsock.readPkt();
+                    if (pkt == null){
+                        Log.e(TAG, "disconnected");
+                        connectionLost();
+                        break;
+                    }
                     // Send the obtained bytes to the UI Activity
-                    mHandler.obtainMessage(RemoteBluetooth.MESSAGE_READ, bytes, -1, buffer)
-                            .sendToTarget();
-                } catch (IOException e) {
-                    Log.e(TAG, "disconnected", e);
-                    connectionLost();
-                    break;
-                }
+                    //#FIXME
+                    mHandler.obtainMessage(RemoteController.MESSAGE_TOAST, pkt.getSize(), -1, new String(pkt.getData())).sendToTarget();
             }
         }
 
+        public void writeRawPkt(byte[] raw) {
+            //mmOutStream.write(buffer);
+        	Pacco pkt = new Pacco(1, raw, raw.length);
+        	btsock.writePkt(pkt);
+
+           //Share the sent message back to the UI Activity
+           //mHandler.obtainMessage(RemoteController.MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
+        }
+        
+        public byte[] readRawPkt(){
+        	return btsock.readPkt().getData();
+        }
         /**
          * Write to the connected OutStream.
          * @param buffer  The bytes to write
+         * @throws IOException 
          */
         public void write(byte[] buffer) {
             try {
-                mmOutStream.write(buffer);
+				mmOutStream.write(buffer);
+			} catch (IOException e) {
+				Log.e(TAG, "Exception during write", e);
+			}
 
-              //   Share the sent message back to the UI Activity
-               mHandler.obtainMessage(RemoteBluetooth.MESSAGE_WRITE, -1, -1, buffer)
-                       .sendToTarget();
-            } catch (IOException e) {
-                Log.e(TAG, "Exception during write", e);
-            }
+           //Share the sent message back to the UI Activity
+           mHandler.obtainMessage(RemoteController.MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
         }
         
 
-        public void writeInt(int i) {
-        	try {
-        		DataOutputStream din = new DataOutputStream(mmOutStream);
-                din.writeInt(i);
-
-                // Share the sent message back to the UI Activity
-//                mHandler.obtainMessage(BluetoothChat.MESSAGE_WRITE, -1, -1, buffer)
-//                        .sendToTarget();
-            } catch (IOException e) {
-                Log.e(TAG, "Exception during write", e);
-            }
-        }
-        
-        
         public void write(int out) {
         	try {
                 mmOutStream.write(out);
 
                 // Share the sent message back to the UI Activity
-//                mHandler.obtainMessage(BluetoothChat.MESSAGE_WRITE, -1, -1, buffer)
-//                        .sendToTarget();
+                // mHandler.obtainMessage(BluetoothChat.MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
             } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);
             }

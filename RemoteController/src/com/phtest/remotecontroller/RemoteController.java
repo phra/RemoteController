@@ -1,4 +1,4 @@
-package com.luugiathuy.apps.remotebluetooth;
+package com.phtest.remotecontroller;
 
 
 import java.io.UnsupportedEncodingException;
@@ -23,8 +23,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.phtest.remotecontroller.R;
 
-public class RemoteBluetooth extends Activity {
+public class RemoteController extends Activity {
 	
 	// Layout view
 	private TextView mTitle;
