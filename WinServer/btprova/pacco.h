@@ -32,6 +32,8 @@ public:
 	pacco(int tipo, char* raw, int len);
 	~pacco(void);
 	char* getData(void);
+	int getType(void);
+	int getSize(void);
 	header_t* getSerializedHeader(void);
 };
 

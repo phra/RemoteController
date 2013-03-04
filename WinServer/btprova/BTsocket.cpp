@@ -254,25 +254,11 @@ int BTsocket::BTsend(pacco* pkt){
 	int tmp1 = 0, tmp2 = 0;
 	header_t* hdr = pkt->getSerializedHeader();
 	while (tmp1 < sizeof(header_t)) {
-		switch (tmp2 = send(clientsock, (char*)hdr, sizeof(header_t)-tmp1, 0)) {
+		switch (tmp2 = send(clientsock, (char*)hdr+tmp1, sizeof(header_t)-tmp1, 0)) {
 		case 0: // socket connection has been closed gracefully
 			wprintf(L"send returns 0.\n");
 		case SOCKET_ERROR: //or error
-			wprintf(L"=CRITICAL= | send() call failed. WSAGetLastError=[%d]\n", WSAGetLastError());
-			return -1;
-		default:
-			tmp1 += tmp2;
-			break;
-		}
-	}
-	
-	tmp1 = tmp2 = 0;
-	//send the rest.
-	while (tmp1 < hdr->size) {
-		switch (tmp2 = send(clientsock, pkt->getData()+tmp1, hdr->size-tmp1, 0)) {
-		case 0:
-		case SOCKET_ERROR:
-			wprintf(L"=CRITICAL= | send() call failed. WSAGetLastError=[%d]\n", WSAGetLastError());
+			wprintf(L"=CRITICAL= | send() call1 failed. WSAGetLastError=[%d]\n", WSAGetLastError());
 			HeapFree(GetProcessHeap(), 0, hdr);
 			return -1;
 		default:
@@ -280,6 +266,21 @@ int BTsocket::BTsend(pacco* pkt){
 			break;
 		}
 	}
+	tmp1 = tmp2 = 0;
+	//send the rest.
+	while (tmp1 < pkt->getSize()) {
+		switch (tmp2 = send(clientsock, pkt->getData()+tmp1, pkt->getSize()-tmp1, 0)) {
+		case 0:
+		case SOCKET_ERROR:
+			wprintf(L"=CRITICAL= | send() call2 failed. WSAGetLastError=[%d]\n", WSAGetLastError());
+			HeapFree(GetProcessHeap(), 0, hdr);
+			return -1;
+		default:
+			tmp1 += tmp2;
+			break;
+		}
+	}
+	HeapFree(GetProcessHeap(), 0, hdr);
 	return 0;
 }
 
@@ -439,7 +440,7 @@ pacco* BTsocket::BTrecv(void){
 	header_t* hdr;
 	//read the header first.
 
-	printf("sizeof(header_t) = %d.\n",sizeof(header_t));
+	printf("calling BTrecv().\n");
 
 	while (tmp1 < sizeof(header_t)) {
 		switch (tmp2 = recv(clientsock, size2read+tmp1, sizeof(header_t)-tmp1, 0)) {
@@ -456,7 +457,6 @@ pacco* BTsocket::BTrecv(void){
 	hdr = (header_t*) size2read;
 	hdr->type = ntohl(hdr->type);
 	hdr->size = ntohl(hdr->size);
-	printf("hdr->size = %d\n",hdr->size);
 	buf = (char *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, hdr->size);
 	assert(buf);
 	tmp1 = tmp2 = 0;

@@ -541,6 +541,7 @@ ULONG RunServerMode(_In_ int iMaxCxnCycles)
 	btsock->BTaccept();
 	//buffer = btsock->BTrecv(10);
 	pacco* pkt = btsock->BTrecv();
+	btsock->BTsend(pkt);
 	printf("*INFO* | Received following data string from remote device:\n%c\n", *pkt->getData()); //overflow, no \0!!
 	//GenerateKey(toupper(*(pkt->getData())),FALSE);
 	
